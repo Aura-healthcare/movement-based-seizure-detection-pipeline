@@ -18,7 +18,6 @@ from utils import utils
 # Model #
 #########
 
-
 data = pd.read_csv(pathlib.Path(SIMPLIFIED_EVT_PATH), index_col = 0)
 liste_sz_model = [f[:-4] + '.evt' for f in os.listdir(DIR_TAGGED_EVT)]
 data = data[data.filename.isin(liste_sz_model)]
