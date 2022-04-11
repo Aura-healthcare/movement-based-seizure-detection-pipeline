@@ -6,13 +6,13 @@ import pywt
 import sys
 import os
 import pandas as pd
+from components import window
 from pydoc import classname
 from app_functions import *
-from classes.evt import *
 
 sys.path.insert(0, '../..')
+from classes.evt import *
 from utils import utils
-
 
 #########
 # Model #
@@ -60,152 +60,7 @@ data["ETI"] = pd.to_datetime(data["ETI"],unit='ms')
 
 app = dash.Dash(__name__)
 app.title = "Seizure Viewer"
-app.layout = dash.html.Div(
-	children=[
-		dash.html.Div(
-			children=[
-				dash.html.P(children="📈", className="header-emoji"),
-				dash.html.H1(
-					children="Seizure Viewer", className="header-title"
-				),
-				dash.html.P(
-					children=["Visualize the medical data of epileptic ",
-							dash.html.Br(),
-							"patients between 2005 and 2010"],
-					className="header-description",
-				),
-			],
-			className="header",
-		), # ---------------Menus deroulants-------------------------------
-		dash.html.Div(
-			children=[
-				dash.html.Div(
-					children=[
-						dash.html.Div(children="Patient", className="menu-title"),
-						dash.dcc.Dropdown(
-							id="patient-filter",
-							value=None,
-							clearable=True,
-							multi=False,
-							searchable=True,
-							className="dropdown",
-						),
-					]
-				), 
-				dash.html.Div(
-					children=[
-						dash.html.Div(children="Seizure", className="menu-title"),
-						dash.dcc.Dropdown(
-							id="seizure-filter",
-							value=None,
-							clearable=True,
-							multi=False,
-							searchable=True,
-							className="dropdown",
-						),
-					],
-				),
-				dash.html.Div(
-					children=[
-						dash.html.Div(children="Eventfile", className="menu-title"),
-						dash.dcc.Dropdown(
-							id="event-filter",
-							value=None,
-							clearable=True,
-							multi=False,
-							searchable=True,
-							className="dropdown",
-						),
-					],
-				),
-			],
-			className="menu",
-		),# ---------------ecg-graph -------------------------------
-		dash.html.Div(
-			children=[
-				dash.html.Div(
-					children=dash.dcc.Graph(
-						id="ecg-graph",
-						config={"displayModeBar": False},
-						className="graph"
-					),
-					className="card",
-				),
-					dash.html.Div(
-					children=dash.dcc.Graph(
-						id="ecg-graph-2",
-						config={"displayModeBar": False},
-						className="graph"
-					),
-					className="card",
-				),
-					dash.html.Div(
-					children=[
-						dash.html.Img(id="graph3", className="image"),
-						dash.html.Img(id="graph4", className="image")
-					],
-					className="container"
-				),
-				# 	dash.html.Div(
-				# 	children=[
-				# 		dash.dcc.Graph(
-				# 			id="graph5",
-				# 			config={"displayModeBar": False},
-				# 			className="graph"
-				# 		),
-				# 		dash.dcc.Graph(
-				# 			id="graph6",
-				# 			config={"displayModeBar": False},
-				# 			className="graph"
-				# 		),
-				# 	],
-				# 	className="container",
-				# ),
-					dash.html.Div(
-					children=[
-                        dash.dcc.Dropdown(
-						id="wavelets-filter",
-						value=None,
-						clearable=True,
-						multi=False,
-						searchable=True,
-						className="dropdown",
-						),
-						dash.dcc.Graph(
-						id="wavelets-graph",
-						config={"displayModeBar": False},
-						className="graph"
-						),
-
-                        dash.dcc.Graph(
-                        id="graph5",
-                        config={"displayModeBar": False},
-                        className="graph"
-						),
-					],
-					className="card",
-				),
-                	dash.html.Div(
-					children=[
-						dash.dcc.Graph(
-						id="wavelets-graph-2",
-						config={"displayModeBar": False},
-						className="graph"
-						),
-                        dash.dcc.Graph(
-                        id="graph6",
-                        config={"displayModeBar": False},
-                        className="graph"
-						),
-					],
-					className="card",
-				),
-			],
-			className="wrapper",
-		),
-	],
-	className="mainview"
-)
+app.layout = window.render_window()
 
 ##############
 # Controller #
@@ -330,9 +185,6 @@ MAJ des graphs
 
 	dash.dependencies.Output("ecg-graph", "figure"),
 	dash.dependencies.Output("ecg-graph-2", "figure"),
-	# dash.dependencies.Output("graph3", "src"),
-	# dash.dependencies.Output("graph4", "src"),
-	# dash.dependencies.Output("graph5", "figure"),
 	dash.dependencies.Output("graph5", "figure"),
 	dash.dependencies.Output("graph6", "figure"),
 	dash.dependencies.Input("patient-filter", "value"),
