@@ -1,4 +1,3 @@
-
 import base64
 import pylab
 import pywt
@@ -18,61 +17,44 @@ sys.path.insert(0, '../..')
 from utils import utils
 from config import *
 
-def plot_psd(evt_name, DIR_TAGGED_EVT = '../../data/filtered_and_labeled_evt/',member = 'MSG'):
+# Return psd from evt filename, if member not specified then 'MSG' 
 
-    '''
-    Retuurn psd from evt filename, if member not specified then 'MSG 
-    '''
+def plot_psd(evt_name, DIR_TAGGED_EVT = '../../data/filtered_and_labeled_evt/', member = 'MSG'):
 
     csv_path = DIR_TAGGED_EVT + evt_name[:-4] + '.csv'
-    df_graf = pd.read_csv(csv_path,index_col = 0)
+    df_graf = pd.read_csv(csv_path, index_col = 0)
 
     np_x = df_graf[df_graf.seizure>0][member].to_numpy()
     np_x = np_x - np.mean(np_x)
 
     p = Periodogram(np_x, sampling=46)
-    df_psd = pd.DataFrame(data= np.transpose([p.frequencies(),p.psd]),columns=['Fréquence en hz','Puissance'])
-    figure = px.line(df_psd,x="Fréquence en hz",y="Puissance",title="Power spectral density within seizure frametime")
-
-    # fig, axes = plt.subplots(1,2,figsize = (12,8))
-    # fig.suptitle('Power spectral density of {} '.format(evt_name), fontsize=16)
-    # p.plot(marker='o', ax = axes[0])  
-    # axes[1].plot(p.frequencies(),p.psd)
-    # axes[1].set_xlabel('Frequency')
-    # # axes[1].set_title('Densité fréquences')
-    # axes[1].set_ylabel('densité')
+    df_psd = pd.DataFrame(data= np.transpose([p.frequencies(), p.psd]),columns=['Fréquence en hz','Puissance'])
+    figure = px.line(df_psd, x="Fréquence en hz",y="Puissance",title="Power spectral density within seizure frametime")
 
     return(figure)
 
-
-
+# Return a spectrum
+# Argument : 
+#    - Complete evt filename like toto.evt
+#    - Member : 'MSG' or 'MSD'
+#    - Sampling = 10 size of each sub-window 
+#    - ws Size of the window on wich i compute fourier
+#    - W c'est la résolution i.e. le nb de points dont il se sert pour Fourier, la plus grand W la plus fine la résolution
 
 def plot_spectrogramme(evt_filename, DIR_TAGGED_EVT = '../../data/filtered_and_labeled_evt/', member = 'MSG',
-    sampling = 46, window_size = 5,granularité = 512,ylim = [0,15] ):
+    sampling = 46, window_size = 5, granularité = 512, ylim = [0,15]):
 
-    ''' 
-    renvoie un spectromme
-    Argument : 
-    - complete evt filename type toto.evt
-    - Member : 'MSG' or 'MSD'
-    - sampling = 10 je lui dis qu'une seconde est découpée en 10, si nb_data = 2000 alors il fera 200 secondes 
-    - ws c'est la taille de le fenêtre sur laquelle je lui dis de calculer fourier en multiple de la période
-    - W c'est la résolution i.e. le nb de points dont il se sert pour Fourier, la plus grand W la plus fine la résolution
-    
-    '''
     csv_path = DIR_TAGGED_EVT + evt_filename[:-4] + '.csv'	
     df_graf = pd.read_csv(csv_path,index_col = 0)
     np_x = df_graf[df_graf.seizure>0][member].to_numpy()
     np_x = np_x - np.mean(np_x)
 
-
-
     p = Spectrogram(np_x, ws=window_size, W=granularité, sampling = sampling) 
-    fig = plt.figure(figsize = (10,7))
+    fig = plt.figure(figsize = (10, 7))
     p.periodogram() 
     p.plot()
     pylab.ylim(ylim)
-    pylab.title("Crise {}, membre {} \n Fréquence en ordonnées de {} à {} hz".format(evt_filename[:-4],member,ylim[0],ylim[1]))
+    pylab.title("Crise {}, membre {} \n Fréquence en ordonnées de {} à {} hz".format(evt_filename[:-4], member, ylim[0], ylim[1]))
 
     buf = io.BytesIO() # in-memory files
     plt.tight_layout()
@@ -94,37 +76,33 @@ def duplicate_list(liste,nb_col):
 
     return(new_liste)
 
-
+# Require a 46Hz signal
 
 def return_frequency_dataframe(global_wv_signal):
-    '''
-    requiere un signal calibréà 46hz
-    '''
-    nb_scales = len(global_wv_signal) # il y autant de scaling que de lignes
-    nb_cols_total = len(global_wv_signal[-1]) * 2 # le nombre de col par défaut c'est celui de la plus haute fréquence
+
+    nb_scales = len(global_wv_signal) # Same number of scaling and lines
+    nb_cols_total = len(global_wv_signal[-1]) * 2 # Default number of column is the one of the highest frequencies
 
     df_columns = list(range(nb_cols_total))
-    list_frequency = ['46-23','23-11.5','11.5-5.75','5.75-2.8','2.8-1.4','1.4,0.7','<0.7']
-    df_wavelet = pd.DataFrame(index = list_frequency , columns = df_columns) # je numerote mes colonnes pour les afficher ds la heatmap 
-    ind_freq = 0 # index = list_frequency[0:nb_scales],
+    list_frequency = ['46-23', '23-11.5', '11.5-5.75', '5.75-2.8', '2.8-1.4', '1.4,0.7', '<0.7']
+    df_wavelet = pd.DataFrame(index = list_frequency, columns = df_columns) # Numbering columns for the heatmap 
+    ind_freq = 0
 
-    for i,freq_row in enumerate(np.arange(nb_scales -1,0,-1)):
+    for i,freq_row in enumerate(np.arange(nb_scales -1, 0, -1)):
         
         band_wavelet_signal = global_wv_signal[freq_row]
         band_wavelet_signal = band_wavelet_signal / (np.sqrt(2)**(i+1))
         
-        # band_wavelet_signal =  duplicate_list(band_wavelet_signal,1)  
-
         frequency = list_frequency[ind_freq]
                     
-        if freq_row == 1: # special treatment for the last 2 rows
+        if freq_row == 1: # Special treatment for the last 2 rows
             nb_col = 2**(i+1)
-            band_wavelet_signal =  duplicate_list(band_wavelet_signal,nb_col)  
+            band_wavelet_signal =  duplicate_list(band_wavelet_signal, nb_col)  
             df_wavelet.loc[frequency] = band_wavelet_signal[0:nb_cols_total] 
         
         else:
             nb_col = 2**(i+1)
-            band_wavelet_signal =  duplicate_list(band_wavelet_signal,nb_col)  
+            band_wavelet_signal =  duplicate_list(band_wavelet_signal, nb_col)  
             band_wavelet_signal = band_wavelet_signal[0:nb_cols_total] 
             df_wavelet.loc[frequency] = band_wavelet_signal
         
@@ -135,29 +113,27 @@ def return_frequency_dataframe(global_wv_signal):
 
     return df_wavelet
 
+# Return a dataframe for graf and a discret wavelet heatmap, arguments are : 
+#    - acc data csv name
+#    - member (MSG or MSD)
+#    - discret wavelet trype
+#    - number of coefficient level required
+
 def get_wavelets_and_acc_figures(csv_name, member = 'MSD', wavelet_type = 'db1', wavelet_level = 7):
-    '''
-    return a df for graf and e discret wavelet heatmap, arguments are : 
-        - acc data csv name
-        - member (MSG or MSD)
-        - discret wavelet trype
-        - number of coefficient level required
-    '''
+
     csv_path = DIR_TAGGED_EVT + csv_name
     df_graf = pd.read_csv(csv_path,index_col = 0)
     df_graf.timeline = [round(i) - df_graf.timeline.iloc[0] for i in list(df_graf.timeline)]
 
     np_x = df_graf[member].to_numpy()
-    np_x = np_x - np.mean(np_x) #pour ne pas charger les plus basses fréquences
-    # np_x = np_x[10000:15000]
-    print(wavelet_type)
+    np_x = np_x - np.mean(np_x) # To not overcharge low frequencies
     wv_signal = pywt.wavedec(np_x,wavelet_type,level = wavelet_level)
     df_frequency_for_heatmap = return_frequency_dataframe(wv_signal)
     frequency_band = list(df_frequency_for_heatmap.index)
     fig = make_subplots(
-    rows=2, cols=1,
-    shared_xaxes=True,
-    subplot_titles=("", "<b> wavelet type = {} </b>".format(wavelet_type))
+        rows=2, cols=1,
+        shared_xaxes=True,
+        subplot_titles=("", "<b> wavelet type = {} </b>".format(wavelet_type))
     )
     
     fig.add_trace(go.Scatter(x = df_graf.timeline, y = df_graf[member]), 1,1)
@@ -170,24 +146,15 @@ def get_wavelets_and_acc_figures(csv_name, member = 'MSD', wavelet_type = 'db1',
     fig.update_yaxes(title_text= 'Bande de fréquences en hz', row=2, col=1)
     fig.update_layout(autosize = True, title_text="<b> {}, data and wavelets </b>".format(member,wavelet_type))
     fig.update_layout(autosize=True, height = 1000, showlegend=False)
-    # layout = go.Layout(title='<b>Bold</b> <i>animals</i>')
-    # figure.update_layout(
-    #     autosize=True,
-    # )
-    #     # width=450,
-    #     # height=800,)
 
     return(fig)
 
-'''
-----------------------------------------------------------Plot continuous wavelet----------------------------------------------------------
-----------------------------------------------------------Plot continuous wavelet----------------------------------------------------------
-'''
+# Plot Continous Wavelet
 
 def return_continous_wavelet_fig(csv_name, member = 'MSD', wavelet_type = 'gaus1'):
 
     csv_path = DIR_TAGGED_EVT + csv_name
-    df_graf = pd.read_csv(csv_path,index_col = 0)
+    df_graf = pd.read_csv(csv_path, index_col = 0)
     df_graf.timeline = [round(i) - df_graf.timeline.iloc[0] for i in list(df_graf.timeline)]
     np_x = df_graf[df_graf.seizure>0][member].to_numpy()
     np_x = np_x - np.mean(np_x)
@@ -197,7 +164,7 @@ def return_continous_wavelet_fig(csv_name, member = 'MSD', wavelet_type = 'gaus1
     time = np.arange(0, N) * dt
 
     scales = np.arange(1,256)
-    figure = figure_wavelet(time, np_x, scales,sz_name = csv_name)
+    figure = figure_wavelet(time, np_x, scales, sz_name = csv_name)
 
     return(figure)
 
@@ -206,7 +173,7 @@ def figure_wavelet(time, signal, scales,sz_name, waveletname = 'gaus1',
                 ylabel = 'Période en secondes : freq = 1 / période', 
                 xlabel = 'Time'):
 
-        title = 'Transformée en ondelettes {} du signal de {}'.format(waveletname,sz_name), 
+        title = 'Transformée en ondelettes {} du signal de {}'.format(waveletname, sz_name), 
         dt = time[1] - time[0]
         [coefficients, frequencies] = pywt.cwt(signal, scales, waveletname, dt)
         power = (abs(coefficients)) ** 2
@@ -215,7 +182,7 @@ def figure_wavelet(time, signal, scales,sz_name, waveletname = 'gaus1',
         contourlevels = np.log2(levels)
         
         fig, ax = plt.subplots(figsize=(15, 10))
-        im = ax.contourf(time, np.log2(period), np.log2(power), contourlevels, extend='both',cmap=cmap)
+        im = ax.contourf(time, np.log2(period), np.log2(power), contourlevels, extend='both', cmap=cmap)
         
         ax.set_title(title, fontsize=20)
         ax.set_ylabel(ylabel, fontsize=18)
@@ -233,11 +200,9 @@ def figure_wavelet(time, signal, scales,sz_name, waveletname = 'gaus1',
         
         return(fig)
 
-def empty_plot(label_annotation):
-	'''
-	Returns an empty plot with a centered text.
-	'''
+# Returns an empty plot with a centered text.
 
+def empty_plot(label_annotation):
 	trace1 = go.Scatter(
 		x=[],
 		y=[]
@@ -281,10 +246,3 @@ def empty_plot(label_annotation):
 	fig = go.Figure(data=data, layout=layout)
 	
 	return fig
-
-
-# def get_fft_values(y_values, T, N, f_s):
-#     f_values = np.linspace(0.0, 1.0/(2.0*T), N//2)
-#     fft_values_ = fft.fft(y_values)
-#     fft_values = 2.0/N * np.abs(fft_values_[0:N//2])
-#     return f_values, fft_values

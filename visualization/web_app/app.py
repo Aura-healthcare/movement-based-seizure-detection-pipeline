@@ -15,7 +15,7 @@ from classes.evt import *
 from utils import utils
 
 #########
-# Model #
+# Data #
 #########
 
 data = pd.read_csv(pathlib.Path(SIMPLIFIED_EVT_PATH), index_col = 0)
@@ -52,7 +52,6 @@ list_discret_wavelet = pywt.wavelist(kind='discrete')
 data["STI"] = pd.to_datetime(data["STI"],unit='ms')
 data["ETI"] = pd.to_datetime(data["ETI"],unit='ms')
 
-
 ########
 # View #
 ########
@@ -64,10 +63,11 @@ app.layout = window.render_window()
 ##############
 # Controller #
 ##############
-'''  
-option c'est pour avoir toutes les valeurs, sinon je mets value
-Ici c'est la maj des menus déroulants
-'''
+
+
+# Options is used to get all the values otherwise use value
+# Callback to update the pickers
+
 @app.callback(
 	dash.dependencies.Output("patient-filter", "options"),
 	dash.dependencies.Output("seizure-filter", "options"),
@@ -75,12 +75,11 @@ Ici c'est la maj des menus déroulants
 
 	dash.dependencies.Input("patient-filter", "value"),
 	dash.dependencies.Input("seizure-filter", "value"),
-	dash.dependencies.Input("event-filter", "value"),
+	dash.dependencies.Input("event-filter", "value")
 
 )
-def update_widgets(patient, seizure, eventfile):
-	
 
+def update_widgets(patient, seizure, eventfile):
 	patient_options=[
 						{"label": p, "value": p}
 						for p in numpy.sort(data.patient.unique())
@@ -125,71 +124,65 @@ def update_widgets(patient, seizure, eventfile):
 
 	return patient_options, seizure_options, eventfile_options
 
-'''  
-Initialisation et MAJ du filtre wavelet, le fait de mettre options en output ça fait qu'il renvoit
-toutes les valeurs possibles. A l'initialisatin la valeur c'est none. Les options sont les mêmes quel que
-soit la valeur choisie.  
-'''
+
+# Initialisation et MAJ du filtre wavelet, le fait de mettre options en output ça fait qu'il renvoit
+# toutes les valeurs possibles. A l'initialisatin la valeur c'est none. Les options sont les mêmes quel que
+# soit la valeur choisie.  
 
 @app.callback(
 	dash.dependencies.Output("wavelets-filter", "options"),
-	dash.dependencies.Input("wavelets-filter", "value"),
+
+	dash.dependencies.Input("wavelets-filter", "value")
 ) 
+
+# Vu qu'à la base notre menu déroulabnt est vide, on lui dit de se remplir. 
+# Après ici quel que soit la valeur de value, on remplie toujurs la liste avec toutes les valeurs possibles
+
 def update_wavelets_filter(wavelet_type):
-	'''
-	vu qu'à la base notre menu déroulabnt est vide, on lui
-	dit de se remplir. 
-	Après ici quel que soit la valeur de value, on remplie toujurs la liste 
-	avec toutes les valeurs possibles
-	
-	'''
 	wavelets_options=[
 						{"label": p, "value": p}
 						for p in list_discret_wavelet 
 					]
-	print(' toto = ', wavelet_type)
-
 	return wavelets_options
-'''
-callback maj graph ondelette
-'''
+
+# Callback update graph ondelette
+
 @app.callback(
 	dash.dependencies.Output("wavelets-graph", "figure"),
     dash.dependencies.Output("wavelets-graph-2", "figure"),
+
 	dash.dependencies.Input("event-filter", "value"),
-	dash.dependencies.Input("wavelets-filter", "value"),
+	dash.dependencies.Input("wavelets-filter", "value")
 )
 
 def update_wavelets_graph(evt_csv_name,wavelets_type):
 	
-	print(' Tata' , wavelets_type)
 	if wavelets_type == None:
 		wavelets_type = 'db1'
 	if evt_csv_name == None:
 		evt_csv_name = '20051115T121100KAPCOR.csv'
 	else:
 		evt_csv_name = evt_csv_name[:-4] + '.csv'
-
-	print('ds update wvlt : ', evt_csv_name)
 	
 	wavelets_graph = get_wavelets_and_acc_figures(evt_csv_name, member = 'MSG', wavelet_type = wavelets_type, wavelet_level = 7)
 	wavelets_graph_2 = get_wavelets_and_acc_figures(evt_csv_name, member = 'MSD', wavelet_type = wavelets_type, wavelet_level = 7)	
 	
 	return wavelets_graph, wavelets_graph_2
 
-'''
-MAJ des graphs
-'''
+# Callback to update the graphs
+
 @app.callback(
 
 	dash.dependencies.Output("ecg-graph", "figure"),
 	dash.dependencies.Output("ecg-graph-2", "figure"),
 	dash.dependencies.Output("graph5", "figure"),
 	dash.dependencies.Output("graph6", "figure"),
+
 	dash.dependencies.Input("patient-filter", "value"),
 	dash.dependencies.Input("seizure-filter", "value"),
 	dash.dependencies.Input("event-filter", "value"),
 )
+
 def update_graphs(patient, seizure, eventfile):
 
 	mask = (
@@ -216,10 +209,6 @@ def update_graphs(patient, seizure, eventfile):
 	columns_y_for_graph = ['seizure'] + LIST_NORMES
 
 	csv_name = "20051115T121100KAPCOR.csv"
-	# graph_figure_3 = get_wavelets_and_acc_figures(csv_name) 
-        
-    # graph3Content = plot_spectrogramme(evt_o.filename)
-	# graph4Content = plot_spectrogramme(evt_o.filename, DIR_TAGGED_EVT, 'MSD')
 	graph5Content = plot_psd(evt_o.filename)
 	graph6Content = plot_psd(evt_o.filename, DIR_TAGGED_EVT, 'MSD')
 
@@ -230,5 +219,5 @@ def update_graphs(patient, seizure, eventfile):
 ###############
 
 if __name__ == "__main__":
-	app.run_server(port=8051, debug=True)
+	app.run_server(port=8052, debug=True)
 
