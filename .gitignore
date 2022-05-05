@@ -1,4 +1,5 @@
 *.csv
 */csv_model/*.csv
 *.pyc
+*.jpg
 __pycache__/
